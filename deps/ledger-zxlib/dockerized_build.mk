@@ -26,7 +26,7 @@ DOCKER_APP_SRC=/project
 DOCKER_APP_BIN=$(DOCKER_APP_SRC)/app/bin/app.elf
 
 DOCKER_BOLOS_SDK=/project/deps/nanos-secure-sdk
-DOCKER_BOLOS_SDKX=/project/deps/nano2-sdk
+DOCKER_BOLOS_SDKX=/project/deps/nanox-secure-sdk
 
 # Note: This is not an SSH key, and being public represents no risk
 SCP_PUBKEY=049bc79d139c70c83a4b19e8922e5ee3e0080bb14a2e8b0752aa42cda90a1463f689b0fa68c1c0246845c2074787b649d0d8a6c0b97d4607065eee3057bdf16b83
@@ -42,9 +42,9 @@ $(info TESTS_JS_PACKAGE      : $(TESTS_JS_PACKAGE))
 
 ifeq ($(USERID),1001)
 # TODO: Use podman inside circleci machines?
-DOCKER_IMAGE=zondax/builder-bolos-1001@sha256:8e9256dc9a190953cb9474b438e5d9b44560a3785f010774aa7a1391d57ba666
+DOCKER_IMAGE=zondax/builder-bolos-1001@sha256:423348672bb9f1e6aca573de29afa6763bcbead1a592cedb62c8fbfd82fb7f65
 else
-DOCKER_IMAGE=zondax/builder-bolos@sha256:f3601fe6249cd39d839814460c66c2b06e2155a5592ec55424710fbfa7d6039d
+DOCKER_IMAGE=zondax/builder-bolos@sha256:2ce8f16b1e3face5464c538198e57a64340f664d932b3383d019f2636321f342
 endif
 
 ifdef INTERACTIVE
@@ -91,7 +91,10 @@ convert_icon:
 	@convert $(LEDGER_SRC)/nanos_icon.gif -crop 14x14+1+1 +repage -negate $(LEDGER_SRC)/nanox_icon.gif
 
 .PHONY: build
-build:
+build: buildS buildX
+
+.PHONY: buildS
+buildS:
 	$(info Replacing app icon)
 	@cp $(LEDGER_SRC)/nanos_icon.gif $(LEDGER_SRC)/glyphs/icon_app.gif
 	$(info calling make inside docker)
@@ -121,11 +124,19 @@ shell:
 
 .PHONY: load
 load:
-	${LEDGER_SRC}/pkg/zxtool.sh load
+	${LEDGER_SRC}/pkg/installer_s.sh load
 
 .PHONY: delete
 delete:
-	${LEDGER_SRC}/pkg/zxtool.sh delete
+	${LEDGER_SRC}/pkg/installer_s.sh delete
+
+.PHONY: loadX
+loadX:
+	${LEDGER_SRC}/pkg/installer_x.sh load
+
+.PHONY: deleteX
+deleteX:
+	${LEDGER_SRC}/pkg/installer_x.sh delete
 
 .PHONY: show_info_recovery_mode
 show_info_recovery_mode:

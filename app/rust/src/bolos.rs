@@ -14,16 +14,14 @@
 *  limitations under the License.
 ********************************************************************************/
 //! Rust interfaces to Ledger SDK APIs.
-use rand::{CryptoRng, RngCore};
-
-#[cfg(test)]
-#[cfg(target_arch = "x86_64")]
-use getrandom::getrandom;
-
 #[cfg(test)]
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::scalar::Scalar;
+#[cfg(test)]
+#[cfg(target_arch = "x86_64")]
+use getrandom::getrandom;
 use merlin::TranscriptRng;
+use rand::{CryptoRng, RngCore};
 
 extern "C" {
     fn cx_rng(buffer: *mut u8, len: u32);
@@ -36,6 +34,7 @@ extern "C" {
 pub fn c_zemu_log_stack(s: &[u8]) {
     unsafe { zemu_log_stack(s.as_ptr()) }
 }
+
 #[cfg(test)]
 pub fn c_zemu_log_stack(s: &[u8]) {}
 

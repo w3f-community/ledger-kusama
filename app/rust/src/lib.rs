@@ -17,26 +17,28 @@
 #![no_builtins]
 #![allow(dead_code, unused_imports)]
 
-mod bolos;
-
+extern crate core;
 #[cfg(test)]
 #[macro_use]
 extern crate hex_literal;
-extern crate core;
 
-fn debug(_msg: &str) {}
-
-use crate::bolos::*;
 use core::convert::TryInto;
 use core::mem;
 use core::panic::PanicInfo;
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+
 use curve25519_dalek::scalar::Scalar;
 use merlin::{Transcript, TranscriptRng, TranscriptRngBuilder};
 use rand::RngCore;
 use schnorrkel::context::{SigningContext, SigningTranscript};
 use schnorrkel::{PublicKey, SecretKey};
 use zeroize::Zeroize;
+
+use crate::bolos::*;
+
+mod bolos;
+
+fn debug(_msg: &str) {}
 
 #[cfg(not(test))]
 #[panic_handler]
@@ -159,13 +161,13 @@ pub extern "C" fn get_sr25519_pk(sk_ed25519_expanded_ptr: *mut u8, pk_sr25519_pt
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
+    use curve25519_dalek::edwards::EdwardsPoint;
+    use curve25519_dalek::scalar::Scalar;
     use log::{debug, info};
     use schnorrkel::{context::*, Keypair, PublicKey, SecretKey, Signature};
 
-    use curve25519_dalek::scalar::Scalar;
-    use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
-    use curve25519_dalek::edwards::EdwardsPoint;
+    use crate::*;
 
     fn init_logging() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -209,7 +211,7 @@ mod tests {
         let keypair: Keypair = Keypair::from(secret);
 
         let mut sigledger = [0u8; 64];
-        hex::decode_to_slice("48fdbe5cf3524bdd078ac711565d658a3053d10660749959883c4710f49d9948b2d5f829bea6800897dc6ea0150ca11075cc36b75bfcf3712aafb8e1bd10bf8f",&mut sigledger).expect("dec");
+        hex::decode_to_slice("48fdbe5cf3524bdd078ac711565d658a3053d10660749959883c4710f49d9948b2d5f829bea6800897dc6ea0150ca11075cc36b75bfcf3712aafb8e1bd10bf8f", &mut sigledger).expect("dec");
 
         let self_sig = Signature::from_bytes(&signature).unwrap();
         let self_sig_ledger = Signature::from_bytes(&sigledger).unwrap();
@@ -237,7 +239,6 @@ mod tests {
             0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03,
             04, 0x5, 0x06, 0x07,
         ];
-
 
         let pk_expected = "b65abc66a8fdeac1197d03daa6c3791d0c0799a52db6b7127b1cd12d46e34364";
 

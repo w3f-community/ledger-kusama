@@ -39,6 +39,7 @@ all: bin/app.elf
 	@echo "\"" >> $(CURDIR)/pkg/zxtool.sh
 	@cat $(CURDIR)/../deps/ledger-zxlib/scripts/template.sh >> $(CURDIR)/pkg/zxtool.sh
 	@chmod +x $(CURDIR)/pkg/zxtool.sh
+	@cp $(CURDIR)/bin/app.elf ${OUTPUT_ELF}
 
 include $(BOLOS_SDK)/Makefile.defines
 
@@ -81,11 +82,18 @@ APP_LOAD_PARAMS = --appFlags 0x200 --delete $(COMMON_LOAD_PARAMS) --path $(APPPA
 ifeq ($(TARGET_NAME),TARGET_NANOS)
 SCRIPT_LD:=$(CURDIR)/script.ld
 ICONNAME:=$(CURDIR)/nanos_icon.gif
+OUTPUT_ELF:= $(CURDIR)/bin/app_s.elf
+OUTPUT_INSTALLER:= $(CURDIR)/pkg/installer_s.elf
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 ICONNAME:=$(CURDIR)/nanox_icon.gif
+OUTPUT_ELF:= $(CURDIR)/bin/app_x.elf
+OUTPUT_INSTALLER:= $(CURDIR)/pkg/installer_x.elf
 endif
+
+$(info TARGET_NAME  = [$(TARGET_NAME)])
+$(info ICONNAME  = [$(ICONNAME)])
 
 ifndef ICONNAME
 $(error ICONNAME is not set)
@@ -165,12 +173,14 @@ AS := $(GCCPATH)arm-none-eabi-gcc
 AFLAGS +=
 
 LD       := $(GCCPATH)arm-none-eabi-gcc
-LDFLAGS  += -O3 -z muldefs
+LDFLAGS  += -O3 -Os
+LDFLAGS  += -z muldefs
 LDLIBS   += -lm -lgcc -lc
 LDLIBS   += -Lrust/target/thumbv6m-none-eabi/release -lrslib
 
 ##########################
 GLYPH_SRC_DIR = glyphs
+INCLUDES_PATH += $(MY_DIR)/glyphs
 include $(BOLOS_SDK)/Makefile.glyphs
 
 APP_SOURCE_PATH += $(MY_DIR)/../deps/libsodium_custom/

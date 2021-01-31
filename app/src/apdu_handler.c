@@ -65,6 +65,11 @@ void extractHDPath(uint32_t rx, uint32_t offset) {
 __Z_INLINE bool process_chunk(volatile uint32_t *tx, uint32_t rx) {
     zemu_log("process_chunk\n");
     const uint8_t payloadType = G_io_apdu_buffer[OFFSET_PAYLOAD_TYPE];
+
+    if (G_io_apdu_buffer[OFFSET_P2] != 0) {
+        THROW(APDU_CODE_INVALIDP1P2);
+    }
+
     if (rx < OFFSET_DATA) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
@@ -332,29 +337,9 @@ __Z_INLINE void handleAllowlistUpload(volatile uint32_t *flags, volatile uint32_
 #endif
 
 #if defined(APP_TESTING)
-#include "rslib.h"
+
 
 void handleTest(volatile uint32_t *flags, volatile uint32_t *tx, uint32_t rx) {
-    uint8_t pubkey[32];
-    MEMZERO(G_io_apdu_buffer, IO_APDU_BUFFER_SIZE);
-
-//     You can add anything that helps testing here.
-    zemu_log_stack("handleTest");
-
-    uint8_t skbytes[64] = {
-            0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06,
-            0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5,
-            0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04,
-            0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03, 04, 0x5, 0x06, 0x07, 0x00, 0x01, 0x02, 0x03,
-            04, 0x5, 0x06, 0x07};
-
-    uint8_t context[4] = {103, 111, 111, 100};
-    uint8_t msg[12] = {116, 101, 115, 116, 32, 109, 101, 115, 115, 97, 103, 101};
-
-    get_sr25519_pk(skbytes, pubkey);
-    sign_sr25519(skbytes, pubkey, context, sizeof(context), msg, sizeof(msg), G_io_apdu_buffer, G_io_apdu_buffer + 32);
-
-    *tx = 64;
     THROW(APDU_CODE_OK);
 }
 #endif

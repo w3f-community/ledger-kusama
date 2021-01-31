@@ -11,28 +11,40 @@ jobs:
       # Still run all other ASAN components
       - run: GTEST_COLOR=1 ASAN_OPTIONS=detect_leaks=0 ctest -VV
 
-  build_ledger_S:
+  build_only_rust:
+    docker:
+      - image: zondax/rust-ci:latest
+    steps:
+      - checkout
+      - run:
+          name: rustfmt
+          command: |
+            cd ~/project/app/rust
+            cargo fmt --version
+            cargo fmt -- --check
+      - run:
+          name: clippy
+          command: |
+            cd ~/project/app/rust
+            cargo clippy --version
+            cargo clippy --all-features --all-targets || true
+      - run:
+          name: audit
+          command: |
+            cd ~/project/app/rust
+            cargo audit --version
+            cargo audit
+      - run:
+          name: run tests
+          command: |
+            cd ~/project/app/rust
+            cargo test
+
+  build_ledger:
     docker:
       - image: zondax/builder-bolos:latest
     environment:
       BOLOS_SDK: /home/zondax/project/deps/nanos-secure-sdk
-      BOLOS_ENV: /opt/bolos
-    steps:
-      - checkout
-      # Docker entrypoint is not considered
-      - run: git submodule update --init --recursive
-      - run:
-          name: Build
-          command: |
-            source /home/zondax/.cargo/env
-            cd /home/zondax/project
-            make
-
-  build_ledger_X:
-    docker:
-      - image: zondax/builder-bolos:latest
-    environment:
-      BOLOS_SDK: /home/zondax/project/deps/nanox-secure-sdk
       BOLOS_ENV: /opt/bolos
     steps:
       - checkout
@@ -62,34 +74,22 @@ jobs:
             cd /home/zondax/project
             SUPPORT_SR25519=1 make
 
-  build_rust:
+  build_ledger_ledgeracio:
     docker:
-      - image: zondax/rust-ci:latest
+      - image: zondax/builder-bolos:latest
+    environment:
+      BOLOS_SDK: /home/zondax/project/deps/nanos-secure-sdk
+      BOLOS_ENV: /opt/bolos
     steps:
       - checkout
+      # Docker entrypoint is not considered
+      - run: git submodule update --init --recursive
       - run:
-          name: rustfmt
+          name: Build Ledgeracio
           command: |
-            cd ~/project/app/rust
-            cargo fmt --version
-            cargo fmt -- --check
-      - run:
-          name: clippy
-          command: |
-            cd ~/project/app/rust
-            cargo clippy --version
-            cargo clippy --all-features --all-targets || true
-      - run:
-          name: audit
-          command: |
-            cd ~/project/app/rust
-            cargo audit --version
-            cargo audit
-      - run:
-          name: run tests
-          command: |
-            cd ~/project/app/rust
-            cargo test
+            source /home/zondax/.cargo/env
+            cd /home/zondax/project
+            COIN=Ledgeracio make
 
   test_fuzz_crash_fixes:
     docker:
@@ -110,23 +110,6 @@ jobs:
                     .
             make -C build
       - run: ./run-fuzz-crashes.py
-
-  build_ledger_ledgeracio:
-    docker:
-      - image: zondax/builder-bolos:latest
-    environment:
-      BOLOS_SDK: /home/zondax/project/deps/nanos-secure-sdk
-      BOLOS_ENV: /opt/bolos
-    steps:
-      - checkout
-      # Docker entrypoint is not considered
-      - run: git submodule update --init --recursive
-      - run:
-          name: Build Ledgeracio
-          command: |
-            source /home/zondax/.cargo/env
-            cd /home/zondax/project
-            COIN=Ledgeracio make
 
   test_zemu:
     machine:
@@ -210,48 +193,6 @@ jobs:
             export PATH=~/.cargo/bin:$PATH
             COIN=Ledgeracio make zemu_test
 
-  test_zemu_sr25519:
-    machine:
-      image: ubuntu-1604:201903-01
-    resource_class: large
-    working_directory: ~/repo
-    environment:
-      BASH_ENV: "/opt/circleci/.nvm/nvm.sh"
-    steps:
-      - checkout
-      - run: git submodule update --init --recursive
-      - run: sudo apt-get update -y && sudo apt-get install -y libusb-1.0.0 libudev-dev
-      - run:
-          name: Install rust
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y cmake binutils-dev libcurl4-openssl-dev libiberty-dev libelf-dev libdw-dev
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y;
-          no_output_timeout: 1800s
-      - run:
-          name: Install node + yarn
-          command: |
-            nvm install 14.4.0
-            nvm use 14.4.0
-            npm install -g yarn
-      - run:
-          name: Build Ledger app
-          command: |
-            make build_sr25519
-      - run:
-          name: Build/Install build js deps
-          command: |
-            nvm use 14.4.0
-            export PATH=~/.cargo/bin:$PATH
-            make zemu_install
-            make tests_tools_build
-      - run:
-          name: Run zemu tests for SR25519 app
-          command: |
-            nvm use 14.4.0
-            export PATH=~/.cargo/bin:$PATH
-            COIN=SR25519 make zemu_test
-
   build_package:
     docker:
       - image: zondax/builder-bolos@sha256:5af9542b68b92c12c5c6ae5bd862ff9dbcce063b38755fe9d8153175f6a53338
@@ -268,23 +209,6 @@ jobs:
             cd /home/zondax/project
             make
       - run: /home/zondax/go/bin/ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $(/home/zondax/project/app/pkg/installer_s.sh version) /home/zondax/project/app/pkg/installer_s.sh
-
-  build_package_X:
-    docker:
-      - image: zondax/builder-bolos:latest
-    environment:
-      BOLOS_SDK: /home/zondax/project/deps/nanox-secure-sdk
-      BOLOS_ENV: /opt/bolos
-    steps:
-      - checkout
-      - run: git submodule update --init --recursive
-      - run:
-          name: Build
-          command: |
-            source /home/zondax/.cargo/env
-            cd /home/zondax/project
-            make
-      - run: /home/zondax/go/bin/ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete $(/home/zondax/project/app/pkg/installer_x.sh version) /home/zondax/project/app/pkg/installer_x.sh
 
   build_package_ledgeracio:
     docker:
@@ -316,9 +240,8 @@ workflows:
   default:
     jobs:
       - build
-      - build_rust
-      - build_ledger_S
-      - build_ledger_X
+      - build_only_rust
+      - build_ledger
       - build_ledger_ledgeracio
       - build_ledger_sr25519
       - test_zemu

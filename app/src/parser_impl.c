@@ -127,6 +127,7 @@ parser_error_t _readCompactInt(parser_context_t *c, compactInt_t *v) {
         case 0:         // single byte
             v->len = 1;
             CTX_CHECK_AND_ADVANCE(c, v->len)
+            _getValue(v, &tmp);
             break;
         case 1:         // 2-byte
             v->len = 2;
@@ -360,6 +361,21 @@ parser_error_t _checkVersions(parser_context_t *c) {
 }
 
 uint8_t __address_type;
+
+parser_error_t _getNextFreeMethodSlot(const parser_context_t *c, pd_Method_t** method) {
+
+    if (c == NULL || c->tx_obj == NULL) {
+        return parser_unexpected_error;
+    }
+
+    if (c->tx_obj->slotIdx + 1 == MAX_METHOD_SLOTS) {
+        return parser_value_too_many_bytes;
+    }
+
+    *method = &c->tx_obj->methodSlot[c->tx_obj->slotIdx];
+    c->tx_obj->slotIdx++;
+    return parser_ok;
+}
 
 uint8_t _getAddressType() {
     return __address_type;

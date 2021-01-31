@@ -10,3 +10,6 @@
 [submodule "deps/libsodium"]
 	path = deps/libsodium
 	url = https://github.com/Zondax/libsodium.git
+[submodule "deps/nanox-secure-sdk"]
+	path = deps/nanox-secure-sdk
+	url = https://github.com/LedgerHQ/nanox-secure-sdk.git
